@@ -120,10 +120,18 @@ const Footer = () => {
         </div>
 
         {/* Copyright */}
-        <div className="pt-8 border-t border-white/10 text-center">
+        <div className="pt-8 border-t border-white/10 flex flex-col md:flex-row justify-between items-center gap-4">
           <p className="text-foreground/60 text-sm">
             © 2025 Goldwila
           </p>
+          <div className="flex gap-6">
+            <Link to="/privacy" className="text-foreground/60 hover:text-foreground transition-colors text-sm">
+              Privacy Policy
+            </Link>
+            <Link to="/terms" className="text-foreground/60 hover:text-foreground transition-colors text-sm">
+              Terms of Service
+            </Link>
+          </div>
         </div>
       </div>
     </footer>

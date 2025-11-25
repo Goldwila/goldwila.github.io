@@ -13,9 +13,12 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { Home, Plus, Loader2, ChevronLeft, ChevronRight } from "lucide-react";
+import SEO from "@/components/SEO";
+import FadeIn from "@/components/FadeIn";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8080/api";
 
@@ -171,6 +174,10 @@ const Village = () => {
 
   return (
     <div className="relative min-h-screen w-full overflow-x-hidden">
+      <SEO 
+        title="Village Directory - Goldwila" 
+        description="Explore the Goldwila village. Find houses, see who's joined, and claim your spot in our growing community."
+      />
       <div className="grain-overlay" />
       
       <div className="textured-bg min-h-screen">
@@ -202,7 +209,7 @@ const Village = () => {
               onChange={(e) => setSearchQuery(e.target.value)}
             />
             {isAuthenticated && userHouses.length === 0 && (
-              <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+              <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen} modal={false}>
                 <DialogTrigger asChild>
                   <Button size="lg" className="h-14 px-6 gap-2 whitespace-nowrap">
                     <Plus className="w-5 h-5" />
@@ -249,8 +256,19 @@ const Village = () => {
 
           {/* Loading State */}
           {isLoading ? (
-            <div className="flex justify-center items-center py-20">
-              <Loader2 className="w-8 h-8 animate-spin text-primary" />
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+              {[...Array(6)].map((_, i) => (
+                <Card key={i} className="p-6 bg-white/5 backdrop-blur-sm border-white/10">
+                  <div className="flex items-start gap-4">
+                    <Skeleton className="h-12 w-12 rounded-lg bg-white/10" />
+                    <div className="flex-1 space-y-2">
+                      <Skeleton className="h-6 w-3/4 bg-white/10" />
+                      <Skeleton className="h-4 w-1/2 bg-white/10" />
+                      <Skeleton className="h-4 w-1/3 bg-white/10" />
+                    </div>
+                  </div>
+                </Card>
+              ))}
             </div>
           ) : currentHouses.length === 0 ? (
             <div className="text-center py-20">
@@ -274,31 +292,32 @@ const Village = () => {
             <>
               {/* House Cards Grid */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-                {currentHouses.map((house) => (
-                  <Card
-                    key={house.id}
-                    className="p-6 bg-white/5 backdrop-blur-sm border-white/10 hover:border-white/20 transition-all"
-                  >
-                    <div className="flex items-start gap-4">
-                      <div className="bg-primary/20 p-3 rounded-lg">
-                        <Home className="w-6 h-6 text-primary" />
-                      </div>
-                      <div className="flex-1">
-                        <h3 className="font-serif text-xl font-bold text-foreground mb-2">
-                          {house.houseName}
-                        </h3>
-                        <div className="space-y-1 text-sm">
-                          <p className="text-foreground/70">
-                            <span className="font-semibold">House No:</span> {house.houseNumber}
-                          </p>
-                          <p className="text-foreground/70">
-                            <span className="font-semibold">Status:</span>{" "}
-                            <span className="text-green-500">{house.status}</span>
-                          </p>
+                {currentHouses.map((house, index) => (
+                  <FadeIn key={house.id} delay={index * 0.1}>
+                    <Card
+                      className="p-6 bg-white/5 backdrop-blur-sm border-white/10 hover:border-white/20 transition-all h-full"
+                    >
+                      <div className="flex items-start gap-4">
+                        <div className="bg-primary/20 p-3 rounded-lg">
+                          <Home className="w-6 h-6 text-primary" />
+                        </div>
+                        <div className="flex-1">
+                          <h3 className="font-serif text-xl font-bold text-foreground mb-2">
+                            {house.houseName}
+                          </h3>
+                          <div className="space-y-1 text-sm">
+                            <p className="text-foreground/70">
+                              <span className="font-semibold">House No:</span> {house.houseNumber}
+                            </p>
+                            <p className="text-foreground/70">
+                              <span className="font-semibold">Status:</span>{" "}
+                              <span className="text-green-500">{house.status}</span>
+                            </p>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  </Card>
+                    </Card>
+                  </FadeIn>
                 ))}
               </div>
 

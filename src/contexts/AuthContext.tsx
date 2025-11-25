@@ -6,7 +6,6 @@ interface User {
   id: string;
   name: string;
   email: string;
-  profilePicture?: string;
 }
 
 interface SubscriptionStatus {
@@ -14,6 +13,7 @@ interface SubscriptionStatus {
   status?: "PENDING" | "IN_PROGRESS" | "COMPLETED";
   position?: number;
   youtubeChannelId?: string;
+  hasHouse?: boolean;
 }
 
 interface AuthContextType {
@@ -25,6 +25,7 @@ interface AuthContextType {
   logout: () => void;
   checkSubscription: () => Promise<void>;
   subscribe: () => Promise<void>;
+  unsubscribe: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -77,11 +78,29 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       if (response.ok) {
         const data = await response.json();
+        
+        // Check if user has a house
+        let hasHouse = false;
+        try {
+          const houseResponse = await fetch(`${API_BASE_URL}/houses/my`, {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          });
+          if (houseResponse.ok) {
+            const houses = await houseResponse.json();
+            hasHouse = houses.length > 0;
+          }
+        } catch (e) {
+          console.error("Error checking house status:", e);
+        }
+
         setSubscription({
-          isSubscribed: true,
+          isSubscribed: data.isSubscribed,
           status: data.status,
           position: data.queuePosition,
           youtubeChannelId: data.youtubeChannelId,
+          hasHouse: hasHouse
         });
       } else if (response.status === 404) {
         setSubscription({
@@ -124,6 +143,34 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  const unsubscribe = async () => {
+    try {
+      const token = localStorage.getItem("authToken");
+      if (!token) {
+        throw new Error("Not authenticated");
+      }
+
+      const response = await fetch(`${API_BASE_URL}/subscribers/unsubscribe`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (response.ok) {
+        await checkSubscription();
+        return;
+      }
+
+      const error = await response.json();
+      throw new Error(error.message || "Failed to unsubscribe");
+    } catch (error) {
+      console.error("Error unsubscribing:", error);
+      throw error;
+    }
+  };
+
   const login = () => {
     window.location.href = `${API_BASE_URL}/oauth2/authorization/google`;
   };
@@ -148,6 +195,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         logout,
         checkSubscription,
         subscribe,
+        unsubscribe,
       }}
     >
       {children}

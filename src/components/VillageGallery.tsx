@@ -2,9 +2,9 @@ import { Card } from "@/components/ui/card";
 
 const VillageGallery = () => {
   const galleryImages = [
-    { title: "Main Square", description: "Village center with fountain" },
-    { title: "Residential Area", description: "Subscriber houses row" },
-    { title: "Community Farm", description: "Shared farming area" },
+    { src: "/v1.webp" },
+    { src: "/v2.webp" },
+    { src: "/v3.webp" },
   ];
 
   return (
@@ -15,33 +15,23 @@ const VillageGallery = () => {
             Explore Our Village
           </h2>
           <p className="text-foreground/70 text-lg max-w-2xl mx-auto">
-            Take a look at what we've built together.
+            A glimpse into our growing world.
           </p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {galleryImages.map((image, index) => (
-            <Card 
+            <div 
               key={index}
-              className="overflow-hidden border-white/10 hover:border-white/20 transition-all group"
+              className="group relative aspect-[4/3] overflow-hidden rounded-xl border border-white/10 bg-white/5"
             >
-              <div className="relative overflow-hidden">
-                <img 
-                  src="/home.png" 
-                  alt={image.title}
-                  className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-              </div>
-              <div className="p-4 bg-white/5 backdrop-blur-sm">
-                <h3 className="font-serif text-lg font-bold text-foreground mb-1">
-                  {image.title}
-                </h3>
-                <p className="text-foreground/60 text-sm">
-                  {image.description}
-                </p>
-              </div>
-            </Card>
+              <img 
+                src={image.src} 
+                alt="Village view"
+                loading="lazy"
+                className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
+              />
+            </div>
           ))}
         </div>
       </div>

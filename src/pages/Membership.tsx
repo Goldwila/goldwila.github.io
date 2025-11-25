@@ -4,42 +4,48 @@ import Footer from "@/components/Footer";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Check } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 import {
   Accordion,
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import SEO from "@/components/SEO";
+import FadeIn from "@/components/FadeIn";
 
 const Membership = () => {
+  const { subscription } = useAuth();
+
   useEffect(() => {
     window.scrollTo(0, 0);
   }, []);
 
   const memberships = [
     {
-      name: "FREE",
-      subtitle: "YouTube Subscriber",
+      name: "Standard Build (Free)",
+      subtitle: "FREE",
       price: "$0",
       period: "",
-      features: [
-        "Standard house in village",
-        "Name your house on website",
-        "Discord community access",
-        "Featured in episodes",
-      ],
-      buttonText: "Already Included - Subscribe on YouTube",
+      members: 0,
+      features: ["Standard house in village", "Name your house on website"],
+      buttonText: subscription?.isSubscribed ? "Claimed" : "Subscribe on YouTube",
       buttonVariant: "outline" as const,
       popular: false,
-      themeColor: "from-green-500/20 to-emerald-500/20",
-      borderColor: "border-green-500/30",
-      accentColor: "text-green-400",
+      disabled: subscription?.isSubscribed,
+      styles: {
+        card: "bg-white/5 border-white/10",
+        name: "text-gray-400",
+        accent: "text-gray-400",
+        button: "bg-transparent border-white/20 hover:bg-white/10",
+      },
     },
     {
-      name: "POPULAR",
-      subtitle: "Custom House",
+      name: "Custom Styled ($10)",
+      subtitle: "$10",
       price: "$10",
       period: "one-time",
+      members: 0,
       features: [
         "Custom styled house (6+ designs to choose from)",
         "Interior decoration & furniture",
@@ -48,33 +54,40 @@ const Membership = () => {
         "Special Discord role",
       ],
       note: "Pay once, keep forever. No recurring charges.",
-      buttonText: "Get Custom House - $10",
-      buttonVariant: "default" as const,
-      popular: true,
-      themeColor: "from-blue-500/20 to-cyan-500/20",
-      borderColor: "border-blue-500/30",
-      accentColor: "text-blue-400",
-    },
-    {
-      name: "PREMIUM",
-      subtitle: "Premium Custom",
-      price: "$25",
-      period: "one-time",
-      features: [
-        "Fully custom design (your schematic/images)",
-        "Unique rare blocks & materials",
-        "Area preference (choose your district)",
-        "Express build (within 1 week)",
-        "Premium Discord role",
-        "Behind-the-scenes build documentation",
-      ],
-      note: "Pay once, keep forever. No recurring charges.",
-      buttonText: "Get Premium Custom - $25",
+      buttonText: "Get Custom Styled - $10",
       buttonVariant: "default" as const,
       popular: false,
-      themeColor: "from-purple-500/20 to-pink-500/20",
-      borderColor: "border-purple-500/30",
-      accentColor: "text-purple-400",
+      styles: {
+        card: "bg-gradient-to-br from-blue-500/20 to-cyan-500/20 border-blue-400/50",
+        name: "text-blue-400",
+        accent: "text-blue-400",
+        button: "bg-blue-500 hover:bg-blue-500/90 shadow-lg shadow-blue-500/20",
+      },
+    },
+    {
+      name: "Fully Custom ($25)",
+      subtitle: "$25",
+      price: "$25",
+      period: "one-time",
+      members: 0,
+      features: [
+        "Fully custom design (your schematic/images)",
+        "Interior decoration & furniture",
+        "Rare blocks & materials",
+        "Area preference",
+        "Express build (within 1 week)",
+        "Premium Discord role",
+      ],
+      note: "Pay once, keep forever. No recurring charges.",
+      buttonText: "Get Fully Custom - $25",
+      buttonVariant: "default" as const,
+      popular: false,
+      styles: {
+        card: "bg-gradient-to-br from-purple-500/20 to-pink-500/20 border-purple-400/50",
+        name: "text-purple-400",
+        accent: "text-purple-400",
+        button: "bg-purple-500 hover:bg-purple-500/90 shadow-lg shadow-purple-500/20",
+      },
     },
   ];
 
@@ -83,49 +96,53 @@ const Membership = () => {
     subtitle: "Supporter",
     price: "$3",
     period: "/month",
-    description: "Want to support the project ongoing?",
+    description: "Support the village and get exclusive perks.",
     features: [
       "Supporter Discord role & color",
       "Early video access (24h early)",
       "Behind-the-scenes updates",
-      "Vote on community projects",
-      "Name in video credits",
       "Exclusive supporter chat",
       "Monthly world downloads",
     ],
-    note: "No house benefits - just ongoing support perks.",
     note2: "Can be added to any tier above. Cancel anytime.",
     buttonText: "Become a Supporter - $3/month",
-    themeColor: "from-orange-500/20 to-red-500/20",
-    borderColor: "border-orange-500/30",
-    accentColor: "text-orange-400",
+    styles: {
+      card: "bg-gradient-to-br from-orange-500/20 to-red-500/20 border-orange-400/50",
+      name: "text-orange-400",
+      accent: "text-orange-400",
+      button: "bg-orange-500 hover:bg-orange-500/90 shadow-lg shadow-orange-500/20",
+    },
   };
 
   const faqs = [
     {
-      question: "Is the custom house really one-time? No recurring charges?",
-      answer: "Yes! Pay once, keep forever. The $3/month Supporter tier is completely optional.",
+      question: "Are the Custom Styled and Fully Custom tiers really one-time payments?",
+      answer: "Yes! Pay once, keep forever. The $3/month Supporter tier is completely optional and separate.",
     },
     {
-      question: "Can I get a custom house AND become a supporter?",
-      answer: "Absolutely! The Supporter tier can be added to any tier for ongoing perks.",
+      question: "Can I get a house build AND become a supporter?",
+      answer: "Absolutely! The Supporter tier can be added to any of the house build tiers for ongoing perks.",
     },
     {
       question: "What if I cancel the Supporter tier?",
-      answer: "Your house stays forever. You only lose the ongoing perks (early access, credits, etc.).",
+      answer: "Your house stays forever. You only lose the ongoing supporter perks (early access, credits, etc.).",
     },
     {
-      question: "How do I submit my custom design?",
+      question: "How do I submit my design for the Fully Custom tier?",
       answer: "After purchase, join our Discord and share your schematic/images in the #custom-builds channel.",
     },
     {
-      question: "Can I upgrade from Custom House to Premium Custom later?",
+      question: "Can I upgrade from Custom Styled to Fully Custom later?",
       answer: "Yes! Just pay the $15 difference and we'll upgrade your build.",
     },
   ];
 
   return (
     <div className="relative min-h-screen w-full overflow-x-hidden">
+      <SEO 
+        title="Membership Plans - Goldwila" 
+        description="Upgrade your house and support the village. Choose from Standard, Custom Styled, or Fully Custom builds."
+      />
       <div className="grain-overlay" />
 
       <div className="textured-bg min-h-screen">
@@ -144,130 +161,155 @@ const Membership = () => {
 
           {/* Membership Cards */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-7xl mx-auto mb-12">
-            {memberships.map((membership) => (
-              <Card
-                key={membership.name}
-                className={`relative p-8 bg-gradient-to-br ${membership.themeColor} backdrop-blur-sm transition-all ${
-                  membership.popular
-                    ? `${membership.borderColor} border-2 scale-105 shadow-2xl`
-                    : "border-white/10 hover:border-white/20"
-                }`}
-              >
-                {membership.popular && (
-                  <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-primary px-4 py-1 rounded-full">
-                    <span className="text-xs font-bold text-white">MOST POPULAR</span>
-                  </div>
-                )}
-
-                <div className="text-center mb-6">
-                  <p className={`text-sm font-semibold ${membership.accentColor} mb-1`}>{membership.name}</p>
-                  <h3 className="font-serif text-2xl font-bold text-foreground mb-2">
-                    {membership.subtitle}
-                  </h3>
-                  <div className="mb-2">
-                    <span className="text-4xl font-bold text-foreground">
-                      {membership.price}
-                    </span>
-                    {membership.period && (
-                      <span className="text-foreground/60 text-sm ml-1">{membership.period}</span>
-                    )}
-                  </div>
-                </div>
-
-                <ul className="space-y-3 mb-6">
-                  {membership.features.map((feature, index) => (
-                    <li key={index} className="flex items-start gap-2">
-                      <Check className={`w-5 h-5 ${membership.accentColor} flex-shrink-0 mt-0.5`} />
-                      <span className="text-foreground/80 text-sm">{feature}</span>
-                    </li>
-                  ))}
-                </ul>
-
-                {membership.note && (
-                  <p className="text-xs text-foreground/60 mb-4 text-center italic">
-                    {membership.note}
-                  </p>
-                )}
-
-                <Button
-                  className={`w-full ${
-                    membership.buttonVariant === "outline"
-                      ? "bg-white/10 hover:bg-white/20"
-                      : "bg-primary hover:bg-primary/90"
+            {memberships.map((membership, index) => (
+              <FadeIn key={membership.name} delay={index * 0.1}>
+                <Card
+                  className={`relative flex flex-col p-8 rounded-2xl backdrop-blur-lg shadow-lg transition-all duration-300 hover:scale-105 h-full ${
+                    membership.styles.card
+                  } ${
+                    membership.popular
+                      ? "border-2 scale-105 shadow-2xl"
+                      : "border hover:border-white/20"
                   }`}
-                  size="lg"
                 >
-                  {membership.buttonText}
-                </Button>
-              </Card>
+                  <div className="flex-grow">
+                    <div className="text-center mb-8">
+                      <h3 className="font-serif text-3xl font-bold text-foreground mb-2">
+                        {membership.name}
+                      </h3>
+                      <div className="mb-4">
+                        <span className="text-5xl font-bold text-foreground">
+                          {membership.price}
+                        </span>
+                        {membership.period && (
+                          <span className="text-foreground/60 text-sm ml-1">
+                            {membership.period}
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs text-foreground/60">
+                        {membership.members} members
+                      </p>
+                    </div>
+
+                    <ul className="space-y-4 mb-8">
+                      {membership.features.map((feature, index) => (
+                        <li key={index} className="flex items-start gap-3">
+                          <Check
+                            className={`w-5 h-5 ${membership.styles.accent} flex-shrink-0 mt-1`}
+                          />
+                          <span className="text-foreground/80">{feature}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  <div className="mt-auto">
+                    {membership.note && (
+                      <p className="text-xs text-foreground/60 mb-6 text-center italic">
+                        {membership.note}
+                      </p>
+                    )}
+
+                    <Button
+                      className={`w-full text-base font-bold py-6 rounded-lg ${membership.styles.button}`}
+                      disabled={membership.disabled}
+                    >
+                      {membership.buttonText}
+                    </Button>
+                  </div>
+                </Card>
+              </FadeIn>
             ))}
           </div>
 
           {/* Supporter Tier - Full Width */}
-          <Card className={`max-w-4xl mx-auto p-8 bg-gradient-to-br ${supporterTier.themeColor} backdrop-blur-sm ${supporterTier.borderColor} hover:border-white/20 transition-all mb-16`}>
-            <div className="text-center mb-6">
-              <p className={`text-sm font-semibold ${supporterTier.accentColor} mb-1`}>{supporterTier.name}</p>
-              <h3 className="font-serif text-2xl font-bold text-foreground mb-2">
-                {supporterTier.subtitle}
-              </h3>
-              <div className="mb-2">
-                <span className="text-4xl font-bold text-foreground">
-                  {supporterTier.price}
-                </span>
-                <span className="text-foreground/60 text-sm">{supporterTier.period}</span>
-              </div>
-              <p className="text-foreground/70 mt-2">{supporterTier.description}</p>
-            </div>
+          <FadeIn delay={0.3}>
+            <Card
+              className={`max-w-4xl mx-auto p-8 rounded-2xl backdrop-blur-lg shadow-lg transition-all duration-300 hover:scale-105 border ${supporterTier.styles.card}`}
+            >
+              <div className="md:flex md:items-center md:gap-8">
+                <div className="md:w-2/3 text-center md:text-left">
+                  <p
+                    className={`text-sm font-semibold tracking-widest uppercase ${supporterTier.styles.name} mb-2`}
+                  >
+                    {supporterTier.name}
+                  </p>
+                  <h3 className="font-serif text-3xl font-bold text-foreground mb-2">
+                    {supporterTier.subtitle}
+                  </h3>
+                  <p className="text-foreground/70 mt-2 mb-6">
+                    {supporterTier.description}
+                  </p>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-6">
-              {supporterTier.features.map((feature, index) => (
-                <div key={index} className="flex items-start gap-2">
-                  <Check className={`w-5 h-5 ${supporterTier.accentColor} flex-shrink-0 mt-0.5`} />
-                  <span className="text-foreground/80 text-sm">{feature}</span>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6 text-left">
+                    {supporterTier.features.map((feature, index) => (
+                      <div key={index} className="flex items-start gap-3">
+                        <Check
+                          className={`w-5 h-5 ${supporterTier.styles.accent} flex-shrink-0 mt-1`}
+                        />
+                        <span className="text-foreground/80">{feature}</span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              ))}
-            </div>
 
-            <div className="text-center mb-6">
-              <p className="text-sm text-foreground/60 mb-1">{supporterTier.note}</p>
-              <p className="text-sm text-foreground/60">{supporterTier.note2}</p>
-            </div>
-
-            <Button className="w-full md:w-auto md:mx-auto md:block bg-primary hover:bg-primary/90" size="lg">
-              {supporterTier.buttonText}
-            </Button>
-          </Card>
+                <div className="md:w-1/3 text-center">
+                  <div className="mb-4">
+                    <span className="text-5xl font-bold text-foreground">
+                      {supporterTier.price}
+                    </span>
+                    <span className="text-foreground/60 text-sm">
+                      {supporterTier.period}
+                    </span>
+                  </div>
+                  <Button
+                    className={`w-full text-base font-bold py-6 rounded-lg ${supporterTier.styles.button}`}
+                  >
+                    {supporterTier.buttonText}
+                  </Button>
+                  <div className="text-center mt-6">
+                    <p className="text-xs text-foreground/60">
+                      {supporterTier.note2}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </Card>
+          </FadeIn>
 
           {/* FAQs Section */}
           <section className="py-20 px-6">
             <div className="max-w-4xl mx-auto">
-              <div className="text-center mb-12">
-                <h2 className="font-serif text-4xl md:text-5xl font-bold text-foreground mb-4">
-                  Frequently Asked Questions
-                </h2>
-                <p className="text-foreground/70 text-lg">
-                  Got questions? We've got answers.
-                </p>
-              </div>
+              <FadeIn delay={0.4}>
+                <div className="text-center mb-12">
+                  <h2 className="font-serif text-4xl md:text-5xl font-bold text-foreground mb-4">
+                    Frequently Asked Questions
+                  </h2>
+                  <p className="text-foreground/70 text-lg">
+                    Got questions? We've got answers.
+                  </p>
+                </div>
 
-              <Card className="bg-white/5 backdrop-blur-sm border-white/10 p-8">
-                <Accordion type="single" collapsible className="w-full">
-                  {faqs.map((faq, index) => (
-                    <AccordionItem
-                      key={index}
-                      value={`item-${index}`}
-                      className="border-white/10"
-                    >
-                      <AccordionTrigger className="text-left text-foreground hover:text-primary transition-all hover:no-underline py-6 text-lg font-medium">
-                        {faq.question}
-                      </AccordionTrigger>
-                      <AccordionContent className="text-foreground/70 text-base leading-relaxed pb-6">
-                        {faq.answer}
-                      </AccordionContent>
-                    </AccordionItem>
-                  ))}
-                </Accordion>
-              </Card>
+                <Card className="bg-white/5 backdrop-blur-sm border-white/10 p-8">
+                  <Accordion type="single" collapsible className="w-full">
+                    {faqs.map((faq, index) => (
+                      <AccordionItem
+                        key={index}
+                        value={`item-${index}`}
+                        className="border-white/10"
+                      >
+                        <AccordionTrigger className="text-left text-foreground hover:text-primary transition-all hover:no-underline py-6 text-lg font-medium">
+                          {faq.question}
+                        </AccordionTrigger>
+                        <AccordionContent className="text-foreground/70 text-base leading-relaxed pb-6">
+                          {faq.answer}
+                        </AccordionContent>
+                      </AccordionItem>
+                    ))}
+                  </Accordion>
+                </Card>
+              </FadeIn>
             </div>
           </section>
         </div>

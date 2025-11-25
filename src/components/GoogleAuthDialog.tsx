@@ -14,13 +14,39 @@ import { useToast } from "@/hooks/use-toast";
 
 interface GoogleAuthDialogProps {
   children: React.ReactNode;
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
-const GoogleAuthDialog = ({ children }: GoogleAuthDialogProps) => {
-  const [isOpen, setIsOpen] = useState(false);
+const GoogleAuthDialog = ({ children, open, onOpenChange }: GoogleAuthDialogProps) => {
+  const [internalIsOpen, setInternalIsOpen] = useState(false);
+  
+  const isControlled = open !== undefined;
+  const isOpen = isControlled ? open : internalIsOpen;
+  const setIsOpen = isControlled ? onOpenChange! : setInternalIsOpen;
   const [isSubscribing, setIsSubscribing] = useState(false);
-  const { user, subscription, login, subscribe } = useAuth();
+  const [isUnsubscribing, setIsUnsubscribing] = useState(false);
+  const { user, subscription, login, subscribe, unsubscribe } = useAuth();
   const { toast } = useToast();
+
+  const handleUnsubscribe = async () => {
+    try {
+      setIsUnsubscribing(true);
+      await unsubscribe();
+      toast({
+        title: "Unsubscribed",
+        description: "You have been removed from the queue.",
+      });
+    } catch (error) {
+      toast({
+        title: "Unsubscription failed",
+        description: error instanceof Error ? error.message : "Please try again",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUnsubscribing(false);
+    }
+  };
 
   const handleSubscribe = async () => {
     try {
@@ -52,7 +78,7 @@ const GoogleAuthDialog = ({ children }: GoogleAuthDialogProps) => {
               Claim Your House
             </DialogTitle>
             <DialogDescription className="text-base pt-2">
-              Sign in with Google to link your YouTube subscription and claim your house in our village.
+              Login with Google to verify your YouTube subscription and claim your house in our village.
             </DialogDescription>
           </DialogHeader>
           
@@ -126,6 +152,16 @@ const GoogleAuthDialog = ({ children }: GoogleAuthDialogProps) => {
               className="w-full"
             >
               Close
+            </Button>
+
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleUnsubscribe}
+              disabled={isUnsubscribing}
+              className="text-muted-foreground hover:text-destructive"
+            >
+              {isUnsubscribing ? "Unsubscribing..." : "Unsubscribe (Leave Queue)"}
             </Button>
           </div>
         </>
