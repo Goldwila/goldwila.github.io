@@ -1,35 +1,34 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { CheckCircle2, XCircle, Loader2 } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 
 const OAuth2Redirect = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const { checkAuth } = useAuth();
   const [status, setStatus] = useState<"loading" | "success" | "error">("loading");
   const [message, setMessage] = useState("");
 
-  useEffect(() => {
-    const token = searchParams.get("token");
-    const userId = searchParams.get("userId");
-    const email = searchParams.get("email");
-    const name = searchParams.get("name");
-    const error = searchParams.get("error");
+  const processedRef = useRef(false);
 
+  useEffect(() => {
+    const error = searchParams.get("error");
+    if (processedRef.current) return;
+    
     if (error) {
+      processedRef.current = true;
       setStatus("error");
       setMessage(error);
       return;
     }
 
-    if (token && userId && email && name) {
-      // Store authentication data
-      localStorage.setItem("authToken", token);
-      localStorage.setItem("userId", userId);
-      localStorage.setItem("userEmail", decodeURIComponent(email));
-      localStorage.setItem("userName", decodeURIComponent(name));
-
+    processedRef.current = true;
+    
+    // Update auth context by checking with the backend (cookie should be set)
+    checkAuth().then(() => {
       setStatus("success");
       setMessage("Successfully authenticated! Redirecting...");
 
@@ -37,11 +36,11 @@ const OAuth2Redirect = () => {
       setTimeout(() => {
         navigate("/");
       }, 2000);
-    } else {
+    }).catch(() => {
       setStatus("error");
-      setMessage("Authentication failed. Missing required parameters.");
-    }
-  }, [searchParams, navigate]);
+      setMessage("Authentication failed.");
+    });
+  }, [searchParams, navigate, checkAuth]);
 
   return (
     <div className="min-h-screen flex items-center justify-center p-6 bg-gradient-to-b from-background to-background/80">

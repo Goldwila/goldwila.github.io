@@ -1,6 +1,5 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from "react";
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8080/api";
+import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from "react";
+import { api } from "@/lib/api";
 
 interface User {
   id: string;
@@ -26,6 +25,7 @@ interface AuthContextType {
   checkSubscription: () => Promise<void>;
   subscribe: () => Promise<void>;
   unsubscribe: () => Promise<void>;
+  checkAuth: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -35,25 +35,21 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [subscription, setSubscription] = useState<SubscriptionStatus | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  const checkAuth = useCallback(async () => {
+    try {
+      const data = await api.get<User>("/auth/me");
+      setUser(data);
+    } catch (e) {
+      setUser(null);
+      setSubscription(null);
+      localStorage.removeItem("subscription");
+    }
+    setIsLoading(false);
+  }, []);
+
   // Load user from localStorage on mount
   useEffect(() => {
-    const loadUser = () => {
-      const token = localStorage.getItem("authToken");
-      const userId = localStorage.getItem("userId");
-      const userName = localStorage.getItem("userName");
-      const userEmail = localStorage.getItem("userEmail");
-
-      if (token && userId && userName && userEmail) {
-        setUser({
-          id: userId,
-          name: userName,
-          email: userEmail,
-        });
-      }
-      setIsLoading(false);
-    };
-
-    loadUser();
+    checkAuth();
   }, []);
 
   // Check subscription status when user changes
@@ -67,121 +63,118 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const checkSubscription = async () => {
     try {
-      const token = localStorage.getItem("authToken");
-      if (!token) return;
+      const data = await api.get<{ isSubscribed: boolean; status?: "PENDING" | "IN_PROGRESS" | "COMPLETED"; queuePosition?: number; youtubeChannelId?: string }>("/subscribers/me");
 
-      const response = await fetch(`${API_BASE_URL}/subscribers/me`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        
-        // Check if user has a house
-        let hasHouse = false;
-        try {
-          const houseResponse = await fetch(`${API_BASE_URL}/houses/my`, {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          });
-          if (houseResponse.ok) {
-            const houses = await houseResponse.json();
-            hasHouse = houses.length > 0;
-          }
-        } catch (e) {
-          console.error("Error checking house status:", e);
-        }
-
-        setSubscription({
-          isSubscribed: data.isSubscribed,
-          status: data.status,
-          position: data.queuePosition,
-          youtubeChannelId: data.youtubeChannelId,
-          hasHouse: hasHouse
-        });
-      } else if (response.status === 404) {
-        setSubscription({
-          isSubscribed: false,
-        });
+      // Check if user has a house
+      let hasHouse = false;
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const houses = await api.get<any[]>("/houses/my");
+        hasHouse = houses.length > 0;
+      } catch (e) {
+        console.error("Error checking house status:", e);
       }
-    } catch (error) {
+
+      const newSub: SubscriptionStatus = {
+        isSubscribed: data.isSubscribed,
+        status: data.status,
+        position: data.queuePosition,
+        youtubeChannelId: data.youtubeChannelId,
+        hasHouse: hasHouse
+      };
+      setSubscription(newSub);
+      localStorage.setItem("subscription", JSON.stringify(newSub));
+    } catch (error: unknown) {
+      const errMessage = error instanceof Error ? error.message : String(error);
+      if (errMessage.includes("401") || errMessage.includes("Unauthorized")) {
+        // User is not authenticated, treat as not subscribed
+        const newSub = { isSubscribed: false };
+        setSubscription(newSub);
+        localStorage.setItem("subscription", JSON.stringify(newSub));
+        return;
+      }
+
+      // Only log non-401 errors
       console.error("Error checking subscription:", error);
-      setSubscription({
-        isSubscribed: false,
-      });
+      // Don't clear subscription on error to avoid flashing, just log it
+      const newSub = { isSubscribed: false };
+      setSubscription(newSub);
+      localStorage.setItem("subscription", JSON.stringify(newSub));
     }
   };
 
   const subscribe = async () => {
     try {
-      const token = localStorage.getItem("authToken");
-      if (!token) {
-        throw new Error("Not authenticated");
-      }
-
-      const response = await fetch(`${API_BASE_URL}/subscribers/subscribe`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-      });
-
-      if (response.ok) {
-        await checkSubscription();
+      if (!user) {
+        login();
         return;
       }
 
-      const error = await response.json();
-      throw new Error(error.message || "Failed to subscribe");
-    } catch (error) {
+      await api.post("/subscribers/subscribe", {});
+
+      // Optimistic update
+      const newSub: SubscriptionStatus = {
+        ...(subscription || {}),
+        isSubscribed: true,
+        status: "PENDING" // Assuming pending initially
+      };
+      setSubscription(newSub);
+      localStorage.setItem("subscription", JSON.stringify(newSub));
+
+      // Then fetch fresh data
+      await checkSubscription();
+    } catch (error: unknown) {
       console.error("Error subscribing:", error);
+      const errMessage = error instanceof Error ? error.message : String(error);
+      // If unauthorized, redirect to login
+      if (errMessage.includes("401") || errMessage.includes("Unauthorized")) {
+        login();
+        return;
+      }
       throw error;
     }
   };
 
   const unsubscribe = async () => {
     try {
-      const token = localStorage.getItem("authToken");
-      if (!token) {
+      if (!user) {
         throw new Error("Not authenticated");
       }
 
-      const response = await fetch(`${API_BASE_URL}/subscribers/unsubscribe`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-      });
+      await api.post("/subscribers/unsubscribe", {});
 
-      if (response.ok) {
-        await checkSubscription();
-        return;
-      }
+      // Optimistic update
+      const newSub: SubscriptionStatus = {
+        ...(subscription || {}),
+        isSubscribed: false,
+        status: undefined,
+        position: undefined,
+        hasHouse: false // Assuming losing house if unsubscribed? Or just queue spot?
+      };
+      setSubscription(newSub);
+      localStorage.setItem("subscription", JSON.stringify(newSub));
 
-      const error = await response.json();
-      throw new Error(error.message || "Failed to unsubscribe");
-    } catch (error) {
+      // Then fetch fresh data
+      await checkSubscription();
+    } catch (error: unknown) {
       console.error("Error unsubscribing:", error);
       throw error;
     }
   };
 
   const login = () => {
-    window.location.href = `${API_BASE_URL}/oauth2/authorization/google`;
+    window.location.href = `${api.url}/oauth2/authorization/google`;
   };
 
-  const logout = () => {
-    localStorage.removeItem("authToken");
-    localStorage.removeItem("userId");
-    localStorage.removeItem("userName");
-    localStorage.removeItem("userEmail");
+  const logout = async () => {
+    try {
+      await api.post("/auth/logout", {});
+    } catch (e) {
+      console.error("Logout failed", e);
+    }
     setUser(null);
     setSubscription(null);
+    localStorage.removeItem("subscription");
   };
 
   return (
@@ -196,6 +189,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         checkSubscription,
         subscribe,
         unsubscribe,
+        checkAuth,
       }}
     >
       {children}

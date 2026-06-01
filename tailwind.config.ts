@@ -1,4 +1,5 @@
 import type { Config } from "tailwindcss";
+import tailwindcssAnimate from "tailwindcss-animate";
 
 export default {
   darkMode: ["class"],
@@ -109,14 +110,25 @@ export default {
             transform: "translateY(0)"
           }
         },
+        "float": {
+          "0%, 100%": { transform: "translateY(0px)" },
+          "50%": { transform: "translateY(-20px)" },
+        },
+        "shine": {
+          "from": { "backgroundPosition": "0 0" },
+          "to": { "backgroundPosition": "-200% 0" }
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
         "grain": "grain 8s steps(10) infinite",
         "fade-in": "fade-in 0.6s ease-out",
+        "float": "float 6s ease-in-out infinite",
+        "shine": "shine 2s infinite",
       },
     },
   },
-  plugins: [require("tailwindcss-animate")],
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  plugins: [tailwindcssAnimate as any],
 } satisfies Config;

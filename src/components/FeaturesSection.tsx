@@ -1,5 +1,6 @@
 import { Card } from "@/components/ui/card";
 import { useEffect, useState } from "react";
+import { api } from "@/lib/api";
 
 const features = [
   {
@@ -22,8 +23,7 @@ const FeaturesSection = () => {
   useEffect(() => {
     const fetchSubscriberCount = async () => {
       try {
-        const response = await fetch(`${import.meta.env.VITE_API_URL}/api/houses/subscriber-count`);
-        const data = await response.json();
+        const data = await api.get<{ subscriberCount: number }>("/houses/subscriber-count");
         setSubscriberCount(data.subscriberCount);
       } catch (error) {
         console.error("Failed to fetch subscriber count:", error);
@@ -55,7 +55,7 @@ const FeaturesSection = () => {
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           {features.map((feature, index) => (
-            <Card 
+            <Card
               key={index}
               className="textured-bg border-white/10 p-8 hover:border-white/20 transition-all duration-300 animate-fade-in"
               style={{ animationDelay: `${index * 0.1}s` }}

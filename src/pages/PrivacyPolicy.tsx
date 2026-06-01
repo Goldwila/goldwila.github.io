@@ -54,7 +54,9 @@ const PrivacyPolicy = () => {
               <section>
                 <h2 className="text-2xl font-bold text-foreground mb-4">4. YouTube API Services</h2>
                 <p>
-                  Goldwila uses YouTube API Services to verify your subscription status. By using our service, you are agreeing to be bound by the YouTube Terms of Service. 
+                  Goldwila uses YouTube API Services to verify your subscription status. By using our service, you are agreeing to be bound by the <a href="https://www.youtube.com/t/terms" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">YouTube Terms of Service</a> and the <a href="http://www.google.com/policies/privacy" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Google Privacy Policy</a>.
+                </p>
+                <p className="mt-2">
                   You can revoke Goldwila's access to your data via the <a href="https://security.google.com/settings/security/permissions" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Google Security Settings page</a>.
                 </p>
               </section>

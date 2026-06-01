@@ -12,15 +12,21 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
-import { Home, Plus, Loader2, ChevronLeft, ChevronRight } from "lucide-react";
+import { Home, Plus, Loader2, ChevronLeft, ChevronRight, Search, Filter } from "lucide-react";
 import SEO from "@/components/SEO";
 import FadeIn from "@/components/FadeIn";
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8080/api";
+import { api } from "@/lib/api";
 
 interface House {
   id: number;
@@ -40,6 +46,8 @@ const Village = () => {
   const [isCreating, setIsCreating] = useState(false);
   const [houseName, setHouseName] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
+  const [sortBy, setSortBy] = useState("newest");
+  const [statusFilter, setStatusFilter] = useState("ALL");
   const housesPerPage = 6;
 
   const { user, isAuthenticated } = useAuth();
@@ -53,30 +61,43 @@ const Village = () => {
     }
   }, [isAuthenticated]);
 
-  // Filter houses based on search
+  // Filter and sort houses
   useEffect(() => {
+    let result = [...houses];
+
+    // Status filter
+    if (statusFilter !== "ALL") {
+      result = result.filter(house => house.status === statusFilter);
+    }
+
+    // Search filter
     if (searchQuery) {
-      const filtered = houses.filter(
+      result = result.filter(
         (house) =>
           house.houseNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
           house.houseName.toLowerCase().includes(searchQuery.toLowerCase())
       );
-      setFilteredHouses(filtered);
-      setCurrentPage(1);
-    } else {
-      setFilteredHouses(houses);
     }
-  }, [searchQuery, houses]);
+
+    // Sort
+    if (sortBy === "newest") {
+      result.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    } else if (sortBy === "oldest") {
+      result.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+    } else if (sortBy === "house-asc") {
+      result.sort((a, b) => a.houseNumber.localeCompare(b.houseNumber));
+    }
+
+    setFilteredHouses(result);
+    setCurrentPage(1);
+  }, [searchQuery, houses, sortBy, statusFilter]);
 
   const fetchHouses = async () => {
     try {
       setIsLoading(true);
-      const response = await fetch(`${API_BASE_URL}/houses`);
-      if (response.ok) {
-        const data = await response.json();
-        setHouses(data);
-        setFilteredHouses(data);
-      }
+      const data = await api.get<House[]>("/houses");
+      setHouses(data);
+      setFilteredHouses(data);
     } catch (error) {
       console.error("Error fetching houses:", error);
     } finally {
@@ -87,16 +108,16 @@ const Village = () => {
   const fetchUserHouses = async () => {
     try {
       const token = localStorage.getItem("authToken");
-      const response = await fetch(`${API_BASE_URL}/houses/my`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+      const data = await api.get<House[]>("/houses/my", {
+        Authorization: `Bearer ${token}`,
       });
-      if (response.ok) {
-        const data = await response.json();
-        setUserHouses(data);
+      setUserHouses(data);
+    } catch (error: Error | unknown) {
+      if (error instanceof Error && (error.message.includes("401") || error.message.includes("Unauthorized"))) {
+        // User not logged in, just clear user houses
+        setUserHouses([]);
+        return;
       }
-    } catch (error) {
       console.error("Error fetching user houses:", error);
     }
   };
@@ -115,34 +136,20 @@ const Village = () => {
       setIsCreating(true);
       const token = localStorage.getItem("authToken");
 
-      const response = await fetch(`${API_BASE_URL}/houses`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          ownerName: houseName.trim(),
-        }),
+      await api.post("/houses", {
+        ownerName: houseName.trim(),
+      }, {
+        Authorization: `Bearer ${token}`,
       });
 
-      if (response.ok) {
-        toast({
-          title: "House created!",
-          description: "Your house has been added to the village",
-        });
-        setHouseName("");
-        setIsDialogOpen(false);
-        fetchHouses(); // Refresh the list
-        fetchUserHouses(); // Refresh user houses
-      } else {
-        const error = await response.json();
-        toast({
-          title: "Failed to create house",
-          description: error.message || "Please try again",
-          variant: "destructive",
-        });
-      }
+      toast({
+        title: "House created!",
+        description: "Your house has been added to the village",
+      });
+      setHouseName("");
+      setIsDialogOpen(false);
+      fetchHouses(); // Refresh the list
+      fetchUserHouses(); // Refresh user houses
     } catch (error) {
       toast({
         title: "Error",
@@ -174,15 +181,15 @@ const Village = () => {
 
   return (
     <div className="relative min-h-screen w-full overflow-x-hidden">
-      <SEO 
-        title="Village Directory - Goldwila" 
+      <SEO
+        title="Village Directory - Goldwila"
         description="Explore the Goldwila village. Find houses, see who's joined, and claim your spot in our growing community."
       />
       <div className="grain-overlay" />
-      
+
       <div className="textured-bg min-h-screen">
         <Navbar />
-        
+
         <div className="container mx-auto px-6 pt-32 pb-16">
           {/* Header with House Logo */}
           <div className="text-center mb-12">
@@ -199,59 +206,99 @@ const Village = () => {
             </p>
           </div>
 
-          {/* Search Bar and Create Button */}
-          <div className="max-w-2xl mx-auto mb-12 flex gap-4">
-            <Input
-              type="search"
-              placeholder="Search by house number or owner name..."
-              className="h-14 text-lg border-white/20 bg-white/5 backdrop-blur-sm"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-            {isAuthenticated && userHouses.length === 0 && (
-              <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen} modal={false}>
-                <DialogTrigger asChild>
-                  <Button size="lg" className="h-14 px-6 gap-2 whitespace-nowrap">
-                    <Plus className="w-5 h-5" />
-                    Add House
-                  </Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Create Your House</DialogTitle>
-                    <DialogDescription>
-                      Add your house to the village directory
-                    </DialogDescription>
-                  </DialogHeader>
-                  <div className="space-y-4 pt-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="houseName">House Name / Owner Name</Label>
-                      <Input
-                        id="houseName"
-                        placeholder="Enter house or owner name"
-                        value={houseName}
-                        onChange={(e) => setHouseName(e.target.value)}
-                        onKeyPress={(e) => e.key === "Enter" && handleCreateHouse()}
-                      />
-                    </div>
-                    <Button
-                      onClick={handleCreateHouse}
-                      disabled={isCreating}
-                      className="w-full"
-                    >
-                      {isCreating ? (
-                        <>
-                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                          Creating...
-                        </>
-                      ) : (
-                        "Create House"
-                      )}
-                    </Button>
-                  </div>
-                </DialogContent>
-              </Dialog>
-            )}
+          {/* Controls: Search, Filter, Sort, Add */}
+          <div className="max-w-5xl mx-auto mb-12 bg-white/5 border border-white/10 backdrop-blur-xl rounded-3xl p-4 md:p-6 shadow-2xl relative overflow-hidden">
+            {/* Subtle glow effect behind the search container */}
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[80%] h-[80%] bg-primary/10 blur-[80px] pointer-events-none rounded-full" />
+            
+            <div className="relative flex flex-col lg:flex-row gap-4 items-center z-10">
+              {/* Search Bar */}
+              <div className="relative w-full lg:flex-1 group">
+                <div className="absolute inset-y-0 left-5 flex items-center pointer-events-none">
+                  <Search className="h-5 w-5 text-white/40 group-focus-within:text-primary transition-colors duration-300" />
+                </div>
+                <Input
+                  type="search"
+                  placeholder="Search by house or owner name..."
+                  className="w-full h-14 pl-14 pr-6 rounded-2xl bg-black/40 border-white/10 focus:border-primary/50 focus:ring-1 focus:ring-primary/50 text-base placeholder:text-white/40 transition-all duration-300 shadow-inner hover:bg-black/50"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+              </div>
+
+              {/* Filters */}
+              <div className="flex flex-col sm:flex-row gap-4 w-full lg:w-auto">
+                <DropdownMenu modal={false}>
+                  <DropdownMenuTrigger asChild>
+                    <button className="relative w-full sm:w-[180px] group flex items-center justify-between h-14 pl-11 pr-4 bg-black/40 border border-white/10 rounded-2xl text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary/50 focus:border-primary/50 transition-all duration-300 cursor-pointer shadow-inner hover:bg-black/50">
+                      <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none">
+                        <Filter className="h-4 w-4 text-white/40 group-focus-within:text-primary transition-colors duration-300" />
+                      </div>
+                      <span className="truncate">
+                        {sortBy === "newest" ? "Newest First" : sortBy === "oldest" ? "Oldest First" : "House No. (A-Z)"}
+                      </span>
+                      <ChevronRight className="h-4 w-4 text-white/40 rotate-90 transition-transform duration-300 group-focus-within:text-primary" />
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-[180px] rounded-2xl border-white/10 bg-background/95 backdrop-blur-xl p-2 shadow-2xl">
+                    <DropdownMenuItem className="cursor-pointer rounded-xl transition-colors hover:bg-white/5" onSelect={() => setSortBy("newest")}>
+                      Newest First
+                    </DropdownMenuItem>
+                    <DropdownMenuItem className="cursor-pointer rounded-xl transition-colors hover:bg-white/5" onSelect={() => setSortBy("oldest")}>
+                      Oldest First
+                    </DropdownMenuItem>
+                    <DropdownMenuItem className="cursor-pointer rounded-xl transition-colors hover:bg-white/5" onSelect={() => setSortBy("house-asc")}>
+                      House No. (A-Z)
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+
+                {isAuthenticated && userHouses.length === 0 && (
+                  <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen} modal={false}>
+                    <DialogTrigger asChild>
+                      <Button size="lg" className="h-14 px-8 rounded-2xl gap-2 whitespace-nowrap bg-primary hover:bg-primary/90 hover:scale-105 hover:shadow-[0_0_20px_rgba(var(--primary),0.4)] text-primary-foreground transition-all duration-300 font-medium w-full sm:w-auto">
+                        <Plus className="w-5 h-5" />
+                        Claim House
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="sm:max-w-md">
+                      <DialogHeader className="text-center">
+                        <DialogTitle className="text-2xl font-serif text-center">Create Your House</DialogTitle>
+                        <DialogDescription className="text-center">
+                          Add your house to the village directory
+                        </DialogDescription>
+                      </DialogHeader>
+                      <div className="space-y-6 pt-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="houseName" className="text-center block">House Name / Owner Name</Label>
+                          <Input
+                            id="houseName"
+                            placeholder="Enter house or owner name"
+                            value={houseName}
+                            onChange={(e) => setHouseName(e.target.value)}
+                            onKeyPress={(e) => e.key === "Enter" && handleCreateHouse()}
+                          />
+                        </div>
+                        <Button
+                          onClick={handleCreateHouse}
+                          disabled={isCreating}
+                          className="w-full"
+                        >
+                          {isCreating ? (
+                            <>
+                              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                              Creating...
+                            </>
+                          ) : (
+                            "Create House"
+                          )}
+                        </Button>
+                      </div>
+                    </DialogContent>
+                  </Dialog>
+                )}
+              </div>
+            </div>
           </div>
 
           {/* Loading State */}
@@ -271,20 +318,20 @@ const Village = () => {
               ))}
             </div>
           ) : currentHouses.length === 0 ? (
-            <div className="text-center py-20">
-              <Home className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
-              <h3 className="text-xl font-semibold mb-2">No houses found</h3>
-              <p className="text-muted-foreground mb-4">
-                {searchQuery
-                  ? "Try a different search term"
-                  : isAuthenticated
-                  ? "Be the first to add a house to the village!"
-                  : "No houses have been added yet"}
+            <div className="text-center py-24 bg-white/5 backdrop-blur-sm rounded-2xl border border-white/10 max-w-2xl mx-auto">
+              <div className="bg-primary/20 w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-6">
+                <Home className="w-10 h-10 text-primary" />
+              </div>
+              <h3 className="font-serif text-3xl font-semibold mb-4">No houses found</h3>
+              <p className="text-foreground/70 mb-8 max-w-md mx-auto text-lg">
+                {(searchQuery || statusFilter !== "ALL")
+                  ? "We couldn't find any houses matching your search criteria. Try adjusting your filters."
+                  : "The village is completely empty! Subscribe to claim the very first plot."}
               </p>
-              {isAuthenticated && !searchQuery && userHouses.length === 0 && (
-                <Button onClick={() => setIsDialogOpen(true)}>
-                  <Plus className="w-4 h-4 mr-2" />
-                  Add First House
+              {isAuthenticated && !searchQuery && statusFilter === "ALL" && userHouses.length === 0 && (
+                <Button size="lg" className="px-8 bg-primary text-primary-foreground" onClick={() => setIsDialogOpen(true)}>
+                  <Plus className="w-5 h-5 mr-2" />
+                  Claim First House
                 </Button>
               )}
             </div>
@@ -295,11 +342,11 @@ const Village = () => {
                 {currentHouses.map((house, index) => (
                   <FadeIn key={house.id} delay={index * 0.1}>
                     <Card
-                      className="p-6 bg-white/5 backdrop-blur-sm border-white/10 hover:border-white/20 transition-all h-full"
+                      className="p-6 bg-white/5 backdrop-blur-sm border-white/10 hover:border-accent/40 transition-all duration-300 h-full hover:scale-105 hover:shadow-lg group"
                     >
                       <div className="flex items-start gap-4">
-                        <div className="bg-primary/20 p-3 rounded-lg">
-                          <Home className="w-6 h-6 text-primary" />
+                        <div className="bg-primary/20 p-3 rounded-lg group-hover:bg-accent/20 transition-colors">
+                          <Home className="w-6 h-6 text-primary group-hover:text-accent transition-colors" />
                         </div>
                         <div className="flex-1">
                           <h3 className="font-serif text-xl font-bold text-foreground mb-2">

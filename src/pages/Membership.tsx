@@ -3,7 +3,6 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Check } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import {
   Accordion,
@@ -13,6 +12,12 @@ import {
 } from "@/components/ui/accordion";
 import SEO from "@/components/SEO";
 import FadeIn from "@/components/FadeIn";
+
+const CheckIcon = ({ className }: { className?: string }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M20 6L9 17L4 12" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+);
 
 const Membership = () => {
   const { subscription } = useAuth();
@@ -56,13 +61,14 @@ const Membership = () => {
       note: "Pay once, keep forever. No recurring charges.",
       buttonText: "Get Custom Styled - $10",
       buttonVariant: "default" as const,
-      popular: false,
+      popular: true,
       styles: {
-        card: "bg-gradient-to-br from-blue-500/20 to-cyan-500/20 border-blue-400/50",
-        name: "text-blue-400",
-        accent: "text-blue-400",
-        button: "bg-blue-500 hover:bg-blue-500/90 shadow-lg shadow-blue-500/20",
+        card: "bg-gradient-to-br from-primary/10 to-primary/5 border-primary/50 relative overflow-hidden transform hover:scale-105 transition-transform duration-300 shadow-xl shadow-primary/10",
+        name: "text-primary",
+        accent: "text-primary",
+        button: "bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/20",
       },
+      tag: "MOST POPULAR",
     },
     {
       name: "Fully Custom ($25)",
@@ -83,10 +89,10 @@ const Membership = () => {
       buttonVariant: "default" as const,
       popular: false,
       styles: {
-        card: "bg-gradient-to-br from-purple-500/20 to-pink-500/20 border-purple-400/50",
-        name: "text-purple-400",
-        accent: "text-purple-400",
-        button: "bg-purple-500 hover:bg-purple-500/90 shadow-lg shadow-purple-500/20",
+        card: "bg-white/5 border-white/10",
+        name: "text-gray-300",
+        accent: "text-gray-400",
+        button: "bg-white/10 hover:bg-white/20 text-foreground border border-white/20",
       },
     },
   ];
@@ -107,10 +113,10 @@ const Membership = () => {
     note2: "Can be added to any tier above. Cancel anytime.",
     buttonText: "Become a Supporter - $3/month",
     styles: {
-      card: "bg-gradient-to-br from-orange-500/20 to-red-500/20 border-orange-400/50",
-      name: "text-orange-400",
-      accent: "text-orange-400",
-      button: "bg-orange-500 hover:bg-orange-500/90 shadow-lg shadow-orange-500/20",
+      card: "bg-white/5 border-white/10",
+      name: "text-gray-300",
+      accent: "text-gray-400",
+      button: "bg-white/10 hover:bg-white/20 text-foreground border border-white/20",
     },
   };
 
@@ -164,15 +170,21 @@ const Membership = () => {
             {memberships.map((membership, index) => (
               <FadeIn key={membership.name} delay={index * 0.1}>
                 <Card
-                  className={`relative flex flex-col p-8 rounded-2xl backdrop-blur-lg shadow-lg transition-all duration-300 hover:scale-105 h-full ${
+                  className={`relative flex flex-col p-8 rounded-2xl backdrop-blur-lg shadow-lg transition-all duration-300 h-full border ${
                     membership.styles.card
-                  } ${
-                    membership.popular
-                      ? "border-2 scale-105 shadow-2xl"
-                      : "border hover:border-white/20"
-                  }`}
+                  } ${!membership.popular && "hover:border-white/20"}`}
                 >
-                  <div className="flex-grow">
+                  {('tag' in membership && membership.tag === "MOST PfOPULAR") && (
+                    <div className="absolute top-4 right-4 z-10">
+                      <span className="bg-primary text-primary-foreground text-xs font-bold px-3 py-1 rounded-full shadow-sm">
+                        MOST POPULAR
+                      </span>
+                    </div>
+                  )}
+                  {membership.popular && (
+                    <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-transparent opacity-50 pointer-events-none rounded-2xl" />
+                  )}
+                  <div className="flex-grow relative z-10">
                     <div className="text-center mb-8">
                       <h3 className="font-serif text-3xl font-bold text-foreground mb-2">
                         {membership.name}
@@ -195,7 +207,7 @@ const Membership = () => {
                     <ul className="space-y-4 mb-8">
                       {membership.features.map((feature, index) => (
                         <li key={index} className="flex items-start gap-3">
-                          <Check
+                          <CheckIcon
                             className={`w-5 h-5 ${membership.styles.accent} flex-shrink-0 mt-1`}
                           />
                           <span className="text-foreground/80">{feature}</span>
@@ -204,7 +216,7 @@ const Membership = () => {
                     </ul>
                   </div>
 
-                  <div className="mt-auto">
+                  <div className="mt-auto relative z-10">
                     {membership.note && (
                       <p className="text-xs text-foreground/60 mb-6 text-center italic">
                         {membership.note}
@@ -212,7 +224,7 @@ const Membership = () => {
                     )}
 
                     <Button
-                      className={`w-full text-base font-bold py-6 rounded-lg ${membership.styles.button}`}
+                      className={`w-full text-base font-bold py-6 rounded-lg z-20 relative cursor-pointer ${membership.styles.button}`}
                       disabled={membership.disabled}
                     >
                       {membership.buttonText}
@@ -245,7 +257,7 @@ const Membership = () => {
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6 text-left">
                     {supporterTier.features.map((feature, index) => (
                       <div key={index} className="flex items-start gap-3">
-                        <Check
+                        <CheckIcon
                           className={`w-5 h-5 ${supporterTier.styles.accent} flex-shrink-0 mt-1`}
                         />
                         <span className="text-foreground/80">{feature}</span>

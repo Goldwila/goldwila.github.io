@@ -1,4 +1,5 @@
 import { useAuth } from "@/contexts/AuthContext";
+import { api } from "@/lib/api";
 import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import Navbar from "@/components/Navbar";
@@ -6,19 +7,35 @@ import Footer from "@/components/Footer";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { 
-  User as UserIcon, 
-  CheckCircle, 
-  Clock, 
-  Loader2, 
-  Home, 
-  Youtube, 
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import {
+  User as UserIcon,
+  CheckCircle,
+  Clock,
+  Loader2,
+  Home,
   LogOut,
   MapPin,
   Trophy
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import SEO from "@/components/SEO";
+
+const YoutubeIcon = ({ className }: { className?: string }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+    <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z" />
+  </svg>
+);
 
 interface House {
   id: number;
@@ -44,23 +61,43 @@ const Profile = () => {
   useEffect(() => {
     const fetchMyHouse = async () => {
       if (isAuthenticated && subscription?.hasHouse) {
+        // Check cache first
+        const cachedHouse = localStorage.getItem("myHouseData");
+        const cachedTimestamp = localStorage.getItem("myHouseTimestamp");
+        const now = Date.now();
+        const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+
+        if (cachedHouse && cachedTimestamp && (now - parseInt(cachedTimestamp) < CACHE_DURATION)) {
+          try {
+            setMyHouse(JSON.parse(cachedHouse));
+            return; // Use cached data
+          } catch (e) {
+            console.error("Failed to parse cached house data", e);
+          }
+        }
+
         try {
-          const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8080/api";
           const token = localStorage.getItem("authToken");
-          const response = await fetch(`${API_BASE_URL}/houses/my`, {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
+          const houses = await api.get<House[]>("/houses/my", {
+            Authorization: `Bearer ${token}`,
           });
-          if (response.ok) {
-            const houses = await response.json();
-            if (houses.length > 0) {
-              setMyHouse(houses[0]);
-            }
+
+          if (houses.length > 0) {
+            const houseData = houses[0];
+            setMyHouse(houseData);
+            // Update cache
+            localStorage.setItem("myHouseData", JSON.stringify(houseData));
+            localStorage.setItem("myHouseTimestamp", now.toString());
+          } else {
+            setMyHouse(null);
+            localStorage.removeItem("myHouseData");
+            localStorage.removeItem("myHouseTimestamp");
           }
         } catch (error) {
           console.error("Failed to fetch house details", error);
         }
+      } else {
+        setMyHouse(null);
       }
     };
     fetchMyHouse();
@@ -121,6 +158,15 @@ const Profile = () => {
     return null;
   }
 
+  // Show loading state while checking subscription if not yet available
+  if (subscription === null) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case "COMPLETED": return "text-green-500 bg-green-500/10 border-green-500/20";
@@ -131,16 +177,16 @@ const Profile = () => {
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
-      <SEO 
-        title="My Profile - Goldwila" 
+      <SEO
+        title="My Profile - Goldwila"
         description="Manage your Goldwila subscription and view your house status."
       />
       <div className="grain-overlay opacity-50" />
       <Navbar />
-      
+
       <main className="flex-1 pt-32 pb-16 relative z-10">
         <div className="container max-w-6xl mx-auto px-6">
-          
+
           {/* Header Section */}
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-12">
             <div className="flex items-center gap-4">
@@ -152,23 +198,41 @@ const Profile = () => {
                 <p className="text-muted-foreground">{user.email}</p>
               </div>
             </div>
-            <Button variant="outline" onClick={handleLogout} className="gap-2 border-white/10 hover:bg-white/5">
-              <LogOut className="w-4 h-4" />
-              Sign Out
-            </Button>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="outline" className="gap-2 border-white/10 hover:bg-white/5">
+                  <LogOut className="w-4 h-4" />
+                  Sign Out
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent className="sm:max-w-md">
+                <AlertDialogHeader className="text-center">
+                  <AlertDialogTitle className="text-2xl font-serif text-center">Confirm Sign Out</AlertDialogTitle>
+                  <AlertDialogDescription className="text-center pt-2 text-base">
+                    Are you sure you want to sign out? You will need to sign back in to manage your village house.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <div className="flex flex-col sm:flex-row gap-3 pt-4 justify-center">
+                  <AlertDialogCancel className="w-full sm:w-auto mt-0">Cancel</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleLogout} className="w-full sm:w-auto bg-primary text-primary-foreground hover:bg-primary/90 m-0">
+                    Sign Out
+                  </AlertDialogAction>
+                </div>
+              </AlertDialogContent>
+            </AlertDialog>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            
+
             {/* Left Column: Status & House */}
             <div className="lg:col-span-2 space-y-8">
-              
+
               {/* Status Overview */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <Card className="bg-white/5 border-white/10 backdrop-blur-sm">
                   <CardContent className="p-6 flex flex-col items-center text-center">
                     <div className={`w-10 h-10 rounded-full flex items-center justify-center mb-3 ${subscription?.isSubscribed ? "bg-green-500/20 text-green-500" : "bg-red-500/20 text-red-500"}`}>
-                      <Youtube className="w-5 h-5" />
+                      <YoutubeIcon className="w-5 h-5" />
                     </div>
                     <p className="text-sm text-muted-foreground mb-1">Subscription</p>
                     <p className="font-semibold">{subscription?.isSubscribed ? "Active" : "Inactive"}</p>
@@ -239,7 +303,7 @@ const Profile = () => {
                     </div>
                     <h3 className="text-xl font-semibold mb-2">No House Claimed Yet</h3>
                     <p className="text-muted-foreground mb-6 max-w-md mx-auto">
-                      {subscription?.isSubscribed 
+                      {subscription?.isSubscribed
                         ? "You are subscribed! You can now claim your house spot in the village."
                         : "Subscribe to our YouTube channel to unlock your own house in the Goldwila village."}
                     </p>
@@ -280,41 +344,63 @@ const Profile = () => {
                     View Memberships
                   </Button>
                   <Button variant="outline" className="w-full justify-start border-white/10 hover:bg-white/5" onClick={() => window.open("https://www.youtube.com/@Goldwila", "_blank")}>
-                    <Youtube className="w-4 h-4 mr-2" />
+                    <YoutubeIcon className="w-4 h-4 mr-2" />
                     View YouTube Channel
                   </Button>
                 </CardContent>
               </Card>
 
-              {subscription?.isSubscribed ? (
-                <Card className="bg-red-500/5 border-red-500/20 backdrop-blur-sm">
-                  <CardHeader>
-                    <CardTitle className="text-red-400 text-lg">Danger Zone</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-sm text-muted-foreground mb-4">
-                      Unsubscribing will remove you from the queue and you may lose your house spot.
-                    </p>
-                    <Button 
-                      variant="ghost" 
-                      className="w-full text-red-400 hover:text-red-300 hover:bg-red-500/10"
-                      onClick={handleUnsubscribe}
-                      disabled={isUnsubscribing}
-                    >
-                      {isUnsubscribing ? "Unsubscribing..." : "Unsubscribe"}
-                    </Button>
-                  </CardContent>
-                </Card>
-              ) : (
-                <Card className="bg-primary/5 border-primary/20 backdrop-blur-sm">
-                  <CardHeader>
-                    <CardTitle className="text-primary text-lg">Subscribe Now</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-sm text-muted-foreground mb-4">
-                      Subscribe to our YouTube channel to join the queue and get your house built!
-                    </p>
-                    <Button 
+              <Card className={`${subscription?.isSubscribed ? "bg-green-500/5 border-green-500/20" : "bg-primary/5 border-primary/20"} backdrop-blur-sm`}>
+                <CardHeader>
+                  <CardTitle className={`${subscription?.isSubscribed ? "text-green-400" : "text-primary"} text-lg`}>
+                    YouTube Subscription
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    {subscription?.isSubscribed
+                      ? "You are subscribed and in the queue! Unsubscribing will remove you and you may lose your spot."
+                      : "Subscribe to our YouTube channel to join the queue and get your house built!"}
+                  </p>
+
+                  {subscription?.isSubscribed ? (
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button
+                          className="w-full gap-2 bg-green-500/10 text-green-500 hover:bg-green-500/20 border-green-500/20"
+                          variant="outline"
+                          disabled={isUnsubscribing}
+                        >
+                          {isUnsubscribing ? (
+                            <>
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                              Unsubscribing...
+                            </>
+                          ) : (
+                            <>
+                              <CheckCircle className="w-4 h-4" />
+                              Subscribed
+                            </>
+                          )}
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Unsubscribing will remove you from the queue and you may lose your house spot. This action cannot be undone.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction onClick={handleUnsubscribe} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                            Unsubscribe
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  ) : (
+                    <Button
                       className="w-full gap-2"
                       onClick={handleSubscribe}
                       disabled={isSubscribing}
@@ -326,14 +412,14 @@ const Profile = () => {
                         </>
                       ) : (
                         <>
-                          <Youtube className="w-4 h-4" />
+                          <YoutubeIcon className="w-4 h-4" />
                           Subscribe to Goldwila
                         </>
                       )}
                     </Button>
-                  </CardContent>
-                </Card>
-              )}
+                  )}
+                </CardContent>
+              </Card>
             </div>
           </div>
         </div>

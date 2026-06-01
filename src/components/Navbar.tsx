@@ -14,6 +14,13 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { LogOut, User, CheckCircle, Menu } from "lucide-react";
@@ -25,6 +32,7 @@ const Navbar = () => {
   const location = useLocation();
   const [isOpen, setIsOpen] = useState(false);
   const [isAuthDialogOpen, setIsAuthDialogOpen] = useState(false);
+  const [isLogoutDialogOpen, setIsLogoutDialogOpen] = useState(false);
 
   const isActive = (path: string) => {
     return location.pathname === path ? "text-primary font-medium" : "text-foreground/70 hover:text-foreground";
@@ -64,7 +72,10 @@ const Navbar = () => {
   );
 
   return (
-    <nav className="fixed top-0 left-0 right-0 z-40 border-b border-white/10 backdrop-blur-sm bg-background/80">
+    <nav 
+      className="fixed top-0 left-0 right-0 z-40 border-b border-white/10 backdrop-blur-sm bg-background/80"
+      style={{ paddingRight: 'var(--removed-body-scroll-bar-size)' }}
+    >
       <div className="container mx-auto px-6 py-4">
         <div className="flex items-center justify-between">
           <Link to="/" className="flex items-center gap-3">
@@ -88,7 +99,7 @@ const Navbar = () => {
               <div className="hidden md:block">
                 <GoogleAuthDialog>
                   <Button variant="default" className="border-white/20 hover:border-white/30">
-                    Subscribe
+                    Sign In
                   </Button>
                 </GoogleAuthDialog>
               </div>
@@ -104,7 +115,7 @@ const Navbar = () => {
                     <span className="hidden md:inline">{user.name.split(' ')[0]}</span>
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuContent align="end" className="w-56 rounded-2xl border-white/10 bg-background/95 backdrop-blur-xl p-2 shadow-2xl">
                   <DropdownMenuLabel>
                     <div className="flex flex-col">
                       <span className="font-medium">{user.name}</span>
@@ -114,7 +125,7 @@ const Navbar = () => {
                   <DropdownMenuSeparator />
                   
                   <Link to="/profile">
-                    <DropdownMenuItem className="cursor-pointer">
+                    <DropdownMenuItem className="cursor-pointer rounded-xl transition-colors hover:bg-primary/20 hover:text-primary">
                       <User className="w-4 h-4 mr-2" />
                       Profile
                     </DropdownMenuItem>
@@ -122,7 +133,7 @@ const Navbar = () => {
                   
                   {subscription?.isSubscribed && (
                     <>
-                      <DropdownMenuItem className="flex items-center gap-2 cursor-default">
+                      <DropdownMenuItem className="flex items-center gap-2 cursor-default rounded-xl hover:bg-primary/20 transition-colors">
                         <CheckCircle className="w-4 h-4 text-green-500" />
                         <div className="flex flex-col">
                           <span className="font-medium">Subscribed</span>
@@ -135,7 +146,7 @@ const Navbar = () => {
                     </>
                   )}
                   
-                  <DropdownMenuItem onClick={logout} className="text-red-600 cursor-pointer">
+                  <DropdownMenuItem onSelect={() => setIsLogoutDialogOpen(true)} className="cursor-pointer rounded-xl hover:bg-primary/20 hover:text-primary transition-colors">
                     <LogOut className="w-4 h-4 mr-2" />
                     Logout
                   </DropdownMenuItem>
@@ -146,7 +157,7 @@ const Navbar = () => {
               <div className="md:hidden">
                 <GoogleAuthDialog>
                   <Button size="sm" variant="default">
-                    Subscribe
+                    Sign In
                   </Button>
                 </GoogleAuthDialog>
               </div>
@@ -167,14 +178,14 @@ const Navbar = () => {
                   <NavLinks mobile />
                   {!user && (
                     <div className="mt-4 pt-4 border-t border-white/10">
-                      <Button 
-                        className="w-full" 
+                      <Button
+                        className="w-full"
                         onClick={() => {
                           setIsOpen(false);
                           setTimeout(() => setIsAuthDialogOpen(true), 150);
                         }}
                       >
-                        Subscribe to Join
+                        Sign In to Join
                       </Button>
                     </div>
                   )}
@@ -188,6 +199,28 @@ const Navbar = () => {
       <GoogleAuthDialog open={isAuthDialogOpen} onOpenChange={setIsAuthDialogOpen}>
         <button className="hidden" />
       </GoogleAuthDialog>
+
+      <Dialog open={isLogoutDialogOpen} onOpenChange={setIsLogoutDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader className="text-center">
+            <DialogTitle className="text-2xl font-serif text-center">Confirm Sign Out</DialogTitle>
+            <DialogDescription className="text-center pt-2 text-base">
+              Are you sure you want to sign out? You will need to sign back in to manage your village house.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col sm:flex-row gap-3 pt-4 justify-center">
+            <Button variant="outline" className="w-full sm:w-auto" onClick={() => setIsLogoutDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button variant="default" className="w-full sm:w-auto" onClick={() => {
+              setIsLogoutDialogOpen(false);
+              logout();
+            }}>
+              Sign Out
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </nav>
   );
 };
