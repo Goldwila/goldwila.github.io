@@ -19,6 +19,16 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
   User as UserIcon,
   CheckCircle,
   Clock,
@@ -51,6 +61,52 @@ const Profile = () => {
   const [isUnsubscribing, setIsUnsubscribing] = useState(false);
   const [isSubscribing, setIsSubscribing] = useState(false);
   const [myHouse, setMyHouse] = useState<House | null>(null);
+  
+  const [isCreating, setIsCreating] = useState(false);
+  const [houseName, setHouseName] = useState("");
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+
+  const handleCreateHouse = async () => {
+    if (!houseName.trim()) {
+      toast({
+        title: "House name required",
+        description: "Please enter a name for your house",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      setIsCreating(true);
+
+      const res = await api.post<House>("/houses", {
+        ownerName: houseName.trim(),
+      });
+
+      toast({
+        title: "House created!",
+        description: "Your house has been added to the village",
+      });
+      setHouseName("");
+      setIsDialogOpen(false);
+      setMyHouse(res);
+      // Update cache
+      localStorage.setItem("myHouseData", JSON.stringify(res));
+      localStorage.setItem("myHouseTimestamp", Date.now().toString());
+      
+      // Update user subscription state if it comes from the API, 
+      // or just checkAuth to ensure global state matches
+      // await checkAuth(); 
+    } catch (error: Error | unknown) {
+      toast({
+        title: "Error claiming house",
+        description: error instanceof Error ? error.message : "Failed to claim house",
+        variant: "destructive",
+      });
+    } finally {
+      setIsCreating(false);
+    }
+  };
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -308,9 +364,47 @@ const Profile = () => {
                         : "Subscribe to our YouTube channel to unlock your own house in the Goldwila village."}
                     </p>
                     {subscription?.isSubscribed ? (
-                      <Button size="lg" className="px-8">
-                        Claim House Now
-                      </Button>
+                      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen} modal={false}>
+                        <DialogTrigger asChild>
+                          <Button size="lg" className="px-8">
+                            Claim House Now
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent className="sm:max-w-md">
+                          <DialogHeader className="text-center">
+                            <DialogTitle className="text-2xl font-serif text-center">Create Your House</DialogTitle>
+                            <DialogDescription className="text-center">
+                              Enter a name for your house in the village. This will be publicly visible.
+                            </DialogDescription>
+                          </DialogHeader>
+                          <div className="space-y-6 pt-4">
+                            <div className="space-y-2">
+                              <Label htmlFor="houseName" className="text-center block">House Name / Owner Name</Label>
+                              <Input
+                                id="houseName"
+                                placeholder="Enter house or owner name"
+                                value={houseName}
+                                onChange={(e) => setHouseName(e.target.value)}
+                                onKeyPress={(e) => e.key === "Enter" && handleCreateHouse()}
+                              />
+                            </div>
+                            <Button
+                              onClick={handleCreateHouse}
+                              disabled={isCreating}
+                              className="w-full"
+                            >
+                              {isCreating ? (
+                                <>
+                                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                  Creating...
+                                </>
+                              ) : (
+                                "Create House"
+                              )}
+                            </Button>
+                          </div>
+                        </DialogContent>
+                      </Dialog>
                     ) : (
                       <Button size="lg" onClick={handleSubscribe} disabled={isSubscribing}>
                         {isSubscribing ? (

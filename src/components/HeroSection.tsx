@@ -9,7 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 const HeroSection = () => {
   const [subscriberCount, setSubscriberCount] = useState<number | null>(null);
-  const { isAuthenticated, subscription } = useAuth();
+  const { isAuthenticated, subscription, isLoading } = useAuth();
   const navigate = useNavigate();
 
   // Memoize navigate callback to prevent unnecessary re-renders
@@ -67,7 +67,9 @@ const HeroSection = () => {
 
             <div className="flex flex-col gap-4 justify-center lg:justify-start mb-8">
               <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
-                {isAuthenticated && subscription?.hasHouse ? (
+                {isLoading ? (
+                  <Skeleton className="h-12 w-full sm:w-48 bg-white/10 rounded-xl" />
+                ) : isAuthenticated && subscription?.hasHouse ? (
                   <Button
                     size="lg"
                     className="px-10 text-base w-full sm:w-auto bg-primary text-primary-foreground hover:bg-primary/90"

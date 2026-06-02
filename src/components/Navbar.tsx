@@ -28,7 +28,7 @@ import GoogleAuthDialog from "@/components/GoogleAuthDialog";
 import { useState } from "react";
 
 const Navbar = () => {
-  const { user, subscription, logout } = useAuth();
+  const { user, subscription, logout, isLoading } = useAuth();
   const location = useLocation();
   const [isOpen, setIsOpen] = useState(false);
   const [isAuthDialogOpen, setIsAuthDialogOpen] = useState(false);
@@ -95,7 +95,7 @@ const Navbar = () => {
           </div>
 
           <div className="flex items-center gap-3">
-            {!user && (
+            {!user && !isLoading && (
               <div className="hidden md:block">
                 <GoogleAuthDialog>
                   <Button variant="default" className="border-white/20 hover:border-white/30">
@@ -152,7 +152,7 @@ const Navbar = () => {
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
-            ) : (
+            ) : !isLoading ? (
               // Mobile Subscribe Button (only if not logged in)
               <div className="md:hidden">
                 <GoogleAuthDialog>
@@ -161,7 +161,7 @@ const Navbar = () => {
                   </Button>
                 </GoogleAuthDialog>
               </div>
-            )}
+            ) : null}
 
             {/* Mobile Menu */}
             <Sheet open={isOpen} onOpenChange={setIsOpen}>
@@ -176,7 +176,7 @@ const Navbar = () => {
                 </SheetHeader>
                 <div className="flex flex-col gap-4 mt-8">
                   <NavLinks mobile />
-                  {!user && (
+                  {!user && !isLoading && (
                     <div className="mt-4 pt-4 border-t border-white/10">
                       <Button
                         className="w-full"

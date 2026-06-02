@@ -35,11 +35,12 @@ export const api = {
             body: JSON.stringify(body),
         });
         if (!response.ok) {
-            // Try to parse error message from body if possible
+            const rawText = await response.text();
             try {
-                const err = await response.json();
+                const err = JSON.parse(rawText);
                 throw new Error(err.message || err.error || `API Error: ${response.statusText}`);
             } catch (e) {
+                if (e instanceof Error && e.message.startsWith("API Error")) throw e;
                 throw new Error(`API Error: ${response.status} ${response.statusText}`);
             }
         }
