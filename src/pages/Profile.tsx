@@ -36,7 +36,8 @@ import {
   Home,
   LogOut,
   MapPin,
-  Trophy
+  Trophy,
+  Trash2
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import SEO from "@/components/SEO";
@@ -105,6 +106,28 @@ const Profile = () => {
       });
     } finally {
       setIsCreating(false);
+    }
+  };
+
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const handleDeleteAccount = async () => {
+    try {
+      setIsDeleting(true);
+      await api.delete("/auth/me");
+      toast({
+        title: "Account deletion initiated",
+        description: "Your data will be permanently deleted in 30 days. Log back in to cancel.",
+      });
+      logout();
+    } catch (error: Error | unknown) {
+      toast({
+        title: "Error deleting account",
+        description: error instanceof Error ? error.message : "Failed to delete account",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -254,28 +277,53 @@ const Profile = () => {
                 <p className="text-muted-foreground">{user.email}</p>
               </div>
             </div>
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button variant="outline" className="gap-2 border-white/10 hover:bg-white/5">
-                  <LogOut className="w-4 h-4" />
-                  Sign Out
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent className="sm:max-w-md">
-                <AlertDialogHeader className="text-center">
-                  <AlertDialogTitle className="text-2xl font-serif text-center">Confirm Sign Out</AlertDialogTitle>
-                  <AlertDialogDescription className="text-center pt-2 text-base">
-                    Are you sure you want to sign out? You will need to sign back in to manage your village house.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <div className="flex flex-col sm:flex-row gap-3 pt-4 justify-center">
-                  <AlertDialogCancel className="w-full sm:w-auto mt-0">Cancel</AlertDialogCancel>
-                  <AlertDialogAction onClick={handleLogout} className="w-full sm:w-auto bg-primary text-primary-foreground hover:bg-primary/90 m-0">
+            <div className="flex flex-col sm:flex-row gap-3">
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="outline" className="gap-2 border-white/10 hover:bg-white/5 w-full sm:w-auto">
+                    <Trash2 className="w-4 h-4" />
+                    Delete Account
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent className="sm:max-w-md">
+                  <AlertDialogHeader className="text-center">
+                    <AlertDialogTitle className="text-2xl font-serif text-center">Confirm Deletion</AlertDialogTitle>
+                    <AlertDialogDescription className="text-center pt-2 text-base">
+                      Are you sure you want to delete your account? Your data will be held for 30 days before being permanently removed. If you change your mind, simply log back in within 30 days to cancel the deletion.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <div className="flex flex-col sm:flex-row gap-3 pt-4 justify-center">
+                    <AlertDialogCancel className="w-full sm:w-auto mt-0">Cancel</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleDeleteAccount} className="w-full sm:w-auto bg-primary text-primary-foreground hover:bg-primary/90 m-0" disabled={isDeleting}>
+                      {isDeleting ? "Deleting..." : "Delete Account"}
+                    </AlertDialogAction>
+                  </div>
+                </AlertDialogContent>
+              </AlertDialog>
+
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="outline" className="gap-2 border-white/10 hover:bg-white/5 w-full sm:w-auto">
+                    <LogOut className="w-4 h-4" />
                     Sign Out
-                  </AlertDialogAction>
-                </div>
-              </AlertDialogContent>
-            </AlertDialog>
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent className="sm:max-w-md">
+                  <AlertDialogHeader className="text-center">
+                    <AlertDialogTitle className="text-2xl font-serif text-center">Confirm Sign Out</AlertDialogTitle>
+                    <AlertDialogDescription className="text-center pt-2 text-base">
+                      Are you sure you want to sign out? You will need to sign back in to manage your village house.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <div className="flex flex-col sm:flex-row gap-3 pt-4 justify-center">
+                    <AlertDialogCancel className="w-full sm:w-auto mt-0">Cancel</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleLogout} className="w-full sm:w-auto bg-primary text-primary-foreground hover:bg-primary/90 m-0">
+                      Sign Out
+                    </AlertDialogAction>
+                  </div>
+                </AlertDialogContent>
+              </AlertDialog>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">

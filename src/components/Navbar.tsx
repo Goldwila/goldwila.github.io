@@ -148,7 +148,7 @@ const Navbar = () => {
                   
                   <DropdownMenuItem onSelect={() => setIsLogoutDialogOpen(true)} className="cursor-pointer rounded-xl hover:bg-primary/20 hover:text-primary transition-colors">
                     <LogOut className="w-4 h-4 mr-2" />
-                    Logout
+                    Sign Out
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
