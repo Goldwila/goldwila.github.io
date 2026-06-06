@@ -16,6 +16,7 @@ const OAuth2Redirect = () => {
 
   useEffect(() => {
     const error = searchParams.get("error");
+    const token = searchParams.get("token");
     if (processedRef.current) return;
     
     if (error) {
@@ -27,6 +28,10 @@ const OAuth2Redirect = () => {
 
     processedRef.current = true;
     
+    if (token) {
+        localStorage.setItem("authToken", token);
+    }
+
     // Update auth context by checking with the backend (cookie should be set)
     checkAuth().then(() => {
       setStatus("success");

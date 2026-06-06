@@ -43,6 +43,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setUser(null);
       setSubscription(null);
       localStorage.removeItem("subscription");
+      localStorage.removeItem("authToken");
     }
     setIsLoading(false);
   }, []);
@@ -72,7 +73,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         const houses = await api.get<any[]>("/houses/my");
         hasHouse = houses.length > 0;
       } catch (e) {
-        console.error("Error checking house status:", e);
+        // Ignore errors checking house status
       }
 
       const newSub: SubscriptionStatus = {
@@ -94,8 +95,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         return;
       }
 
-      // Only log non-401 errors
-      console.error("Error checking subscription:", error);
       // Don't clear subscription on error to avoid flashing, just log it
       const newSub = { isSubscribed: false };
       setSubscription(newSub);
@@ -124,7 +123,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       // Then fetch fresh data
       await checkSubscription();
     } catch (error: unknown) {
-      console.error("Error subscribing:", error);
       const errMessage = error instanceof Error ? error.message : String(error);
       // If unauthorized, redirect to login
       if (errMessage.includes("401") || errMessage.includes("Unauthorized")) {
@@ -136,6 +134,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const unsubscribe = async () => {
+
     try {
       if (!user) {
         throw new Error("Not authenticated");
@@ -157,7 +156,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       // Then fetch fresh data
       await checkSubscription();
     } catch (error: unknown) {
-      console.error("Error unsubscribing:", error);
       throw error;
     }
   };
@@ -170,11 +168,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       await api.post("/auth/logout", {});
     } catch (e) {
-      console.error("Logout failed", e);
+      // ignore
     }
     setUser(null);
     setSubscription(null);
     localStorage.removeItem("subscription");
+    localStorage.removeItem("authToken");
   };
 
   return (

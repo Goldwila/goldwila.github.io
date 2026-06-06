@@ -9,11 +9,12 @@ const getCsrfToken = () => {
 
 export const api = {
     get: async <T>(endpoint: string, headers: HeadersInit = {}): Promise<T> => {
+        const token = localStorage.getItem("authToken");
         const response = await fetch(`${API_BASE_URL}${endpoint}`, {
             method: "GET",
-            credentials: "include",
             headers: {
                 "Content-Type": "application/json",
+                ...(token ? { "Authorization": `Bearer ${token}` } : {}),
                 ...headers,
             },
         });
@@ -23,13 +24,12 @@ export const api = {
         return response.json();
     },
     post: async <T>(endpoint: string, body: unknown, headers: HeadersInit = {}): Promise<T> => {
-        const csrfToken = getCsrfToken();
+        const token = localStorage.getItem("authToken");
         const response = await fetch(`${API_BASE_URL}${endpoint}`, {
             method: "POST",
-            credentials: "include",
             headers: {
                 "Content-Type": "application/json",
-                ...(csrfToken ? { "X-XSRF-TOKEN": csrfToken } : {}),
+                ...(token ? { "Authorization": `Bearer ${token}` } : {}),
                 ...headers,
             },
             body: JSON.stringify(body),
@@ -44,16 +44,19 @@ export const api = {
                 throw new Error(`API Error: ${response.status} ${response.statusText}`);
             }
         }
-        return response.json();
+        try {
+            return response.json(); // Some POSTs might not have body
+        } catch {
+            return {} as T;
+        }
     },
     delete: async <T>(endpoint: string, headers: HeadersInit = {}): Promise<T> => {
-        const csrfToken = getCsrfToken();
+        const token = localStorage.getItem("authToken");
         const response = await fetch(`${API_BASE_URL}${endpoint}`, {
             method: "DELETE",
-            credentials: "include",
             headers: {
                 "Content-Type": "application/json",
-                ...(csrfToken ? { "X-XSRF-TOKEN": csrfToken } : {}),
+                ...(token ? { "Authorization": `Bearer ${token}` } : {}),
                 ...headers,
             },
         });
