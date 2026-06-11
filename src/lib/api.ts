@@ -34,8 +34,9 @@ export const api = {
             },
             body: JSON.stringify(body),
         });
+        
+        const rawText = await response.text();
         if (!response.ok) {
-            const rawText = await response.text();
             try {
                 const err = JSON.parse(rawText);
                 throw new Error(err.message || err.error || `API Error: ${response.statusText}`);
@@ -45,7 +46,7 @@ export const api = {
             }
         }
         try {
-            return response.json(); // Some POSTs might not have body
+            return rawText ? JSON.parse(rawText) : ({} as T);
         } catch {
             return {} as T;
         }
@@ -60,16 +61,19 @@ export const api = {
                 ...headers,
             },
         });
+        
+        const rawText = await response.text();
         if (!response.ok) {
             try {
-                const err = await response.json();
+                const err = JSON.parse(rawText);
                 throw new Error(err.message || err.error || `API Error: ${response.statusText}`);
             } catch (e) {
+                if (e instanceof Error && e.message.startsWith("API Error")) throw e;
                 throw new Error(`API Error: ${response.statusText}`);
             }
         }
         try {
-            return response.json(); // Some DELETEs callback no content
+            return rawText ? JSON.parse(rawText) : ({} as T);
         } catch {
             return {} as T;
         }
